@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Via Vox - Audio Diarization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #1f1f1f;
+            color: #ffffff;
+        }
+
+        #dropZone {
+            border: 2px dashed #555;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #888;
+            transition: background-color 0.3s, transform 0.3s;
+            cursor: pointer;
+            background-color: #2c2c2c;
+        }
+
+        #transcription {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            background-color: #2c2c2c;
+            border-radius: 8px;
+            color: #dddddd;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        /* 스크롤바 스타일 */
+        #transcription::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #transcription::-webkit-scrollbar-track {
+            background: #2c2c2c;
+            border-radius: 8px;
+        }
+
+        #transcription::-webkit-scrollbar-thumb {
+            background-color: #6d28d9;
+            border-radius: 8px;
+            border: 2px solid #2c2c2c;
+        }
+        
+        #transcription::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-image: url("https://i.imgur.com/xPRI67u.png");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 150px 150px;
+            width: 150px;
+            height: 150px;
+            opacity: 0.05;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        #transcriptionMessage, #transcription p {
+            position: relative;
+            color: #888888;
+            z-index: 1;
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        #dropZone.dragover {
+            background-color: #333;
+            border-color: #888;
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+
+        #audioFile {
+            display: none;
+        }
+
+        #loadingSpinner {
+            border: 4px solid #3c3c3c;
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            color: #ffffff;
+        }
+
+        .button-primary {
+            background-color: #6d28d9;
+        }
+
+        .button-primary:hover {
+            background-color: #5b21b6;
+        }
+
+        .button-secondary {
+            background-color: #4b5563;
+        }
+
+        .button-secondary:hover {
+            background-color: #374151;
+        }
+
+        .sidebar {
+            width: 300px;
+            background-color: #1f1f1f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .content {
+            flex-grow: 1;
+            background-color: #2c2c2c;
+            padding: 20px;
+            border-radius: 8px;
+            color: #dddddd;
+            overflow: auto;
+        }
+
+        .section-container {
+            background-color: #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            color: #dddddd;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .flex {
+            display: flex;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar p-6 shadow-xl flex flex-col items-center">
+            <!-- Logo -->
+            <div class="mb-6">
+                <img src="https://i.imgur.com/xPRI67u.png" alt="Via Vox Logo" class="w-20 h-20">
+            </div>
+
+            <!-- File Upload and Process Button -->
+            <div id="dropZone" class="mb-6 w-full" onclick="document.getElementById('audioFile').click()">
+                <svg class="w-12 h-12 text-gray-500 mx-auto mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5A5.5 5.5 0 0115.9 10h.6a5.5 5.5 0 010 11h-8a5.5 5.5 0 01-5.5-5.5v-5.5a5.5 5.5 0 015.5-5.5h.5M12 15l.01-8m-4 4l4-4 4 4"></path>
+                </svg>
+                <p class="text-gray-400 text-center">파일을 드래그 앤 드롭하거나 클릭하여 업로드</p>
+            </div>
+            <input type="file" id="audioFile" name="audio" accept="audio/*" onchange="handleFileSelect(event)">
+
+            <!-- Process and Download Buttons -->
+            <div class="mb-6 w-full">
+                <button class="button button-primary" onclick="uploadAudio()" id="runButton">텍스트 변환 실행</button>
+               
+            </div>
+            <div class="w-full">
+                <button id="downloadButton" class="button button-secondary" onclick="downloadSummary()" disabled>변환 파일 다운로드</button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="content">
+            <div class="text-center mb-8">
+                <h1 id="fileTitle" class="text-xl font-bold text-white">파일 이름이 여기에 표시됩니다.</h1>
+                <p class="text-gray-400 mt-4">텍스트 변환을 실행하면 음성 파일을 텍스트로 변환해드려요.</p>
+            </div>
+
+          
+            <!-- 음성 기록 -->
+            <div class="section-container">
+                <h2 class="section-title">음성 기록</h2>
+                <div id="transcription" class="text-lg font-light text-gray-300" style="position: relative; height: 300px; padding: 16px;">
+                    <!-- 로딩 메시지와 스피너를 중앙에 배치할 컨테이너 -->
+                    <div style="display: flex; align-items: center; justify-content: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                        <p id="transcriptionMessage" class="text-center text-gray-500">음성 기록이 여기에 표시됩니다.</p>
+                        <div id="loadingSpinner" style="display: none; margin-left: 8px;" class="loading-spinner"></div>
+                    </div>
+                    <!-- 전사된 텍스트가 표시될 영역 -->
+                    <div id="transcriptionText" style="position: relative; z-index: 1;"></div>
+                </div>
+            </div>
+
+            <!-- 내용 요약 -->
+            <div class="section-container">
+                <h2 class="section-title">내용 요약</h2>
+                <div id="summary" class="text-lg font-light text-gray-300">
+                    <p id="summaryMessage" class="text-center text-gray-500">요약 내용이 여기에 표시됩니다.</p>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        let selectedFile;
+
+        // 파일 선택 시 업데이트
+        function handleFileSelect(event) {
+            selectedFile = event.target.files[0];
+            document.getElementById('fileTitle').textContent = selectedFile.name;
+            document.getElementById('dropZone').textContent = selectedFile.name;
+        }
+
+        // 드래그 앤 드롭 이벤트
+        const dropZone = document.getElementById('dropZone');
+        
+        dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropZone.classList.remove('dragover');
+            selectedFile = event.dataTransfer.files[0];
+            document.getElementById('fileTitle').textContent = selectedFile.name;
+            document.getElementById('dropZone').textContent = selectedFile.name;
+            document.getElementById('audioFile').files = event.dataTransfer.files;
+        });
+
+        async function uploadAudio() {
+            const audioFile = document.getElementById("audioFile").files[0];
+            if (!audioFile) {
+                alert("Please select an audio file first.");
+                return;
+            }
+
+            console.log("Uploading audio file:", audioFile.name);
+
+            document.getElementById("runButton").disabled = true;
+
+            // Loading spinner 및 메시지 설정
+            const loadingSpinner = document.getElementById("loadingSpinner");
+            const transcriptionMessage = document.getElementById("transcriptionMessage");
+
+            if (loadingSpinner && transcriptionMessage) {
+                loadingSpinner.style.display = "inline-block"; // 스피너 표시
+                transcriptionMessage.textContent = "음성 기록 생성 중..."; // 로딩 메시지로 변경
+            }
+
+            const formData = new FormData();
+            formData.append("audio", audioFile);
+
+            try {
+                const response = await fetch("http://localhost:5000/process_audio", {
+                    method: "POST",
+                    body: formData
+                });
+
+                console.log("Response received:", response);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("Data received:", data);
+
+                // 전사 및 요약 결과를 각각의 영역에 표시
+                let summary = data.summary || "No summary available.";
+                const [mainContent, finalSummary] = summary.split("요약 :");
+
+                // 화자 변경 시 줄바꿈 추가
+                const speakerLines = mainContent.split('SPEAKER_');
+                let formattedContent = speakerLines.map((line, index) => {
+                    if (index === 0) return line.trim(); // 첫 번째는 SPEAKER_ 없이 시작하므로 그대로 사용
+                    return `SPEAKER_${line.trim()}`; // 나머지 라인에 SPEAKER_ 추가
+                }).join('<br><br>'); // 화자별 줄바꿈 추가
+
+                document.getElementById("transcription").innerHTML = formattedContent;
+                document.getElementById("summary").innerHTML = finalSummary ? finalSummary.trim() : "요약 내용을 표시할 수 없습니다.";
+
+                // 요약 데이터를 다운로드 버튼에 저장
+                document.getElementById("downloadButton").setAttribute("data-summary", summary);
+
+                document.getElementById("downloadButton").disabled = false;
+            } catch (error) {
+                console.error("Error:", error);
+                transcriptionMessage.innerText = "파일 처리 중 오류가 발생했습니다.";
+                document.getElementById("summary").innerText = "파일 처리 중 오류가 발생했습니다.";
+            } finally {
+                document.getElementById("runButton").disabled = false;
+                
+                // Loading spinner 숨기기 및 기본 메시지 업데이트
+                if (loadingSpinner) {
+                    loadingSpinner.style.display = "none";
+                }
+                if (transcriptionMessage) {
+                    transcriptionMessage.textContent = ""; // 음성 기록 완료 후 메시지를 비워둠
+                }
+            }
+        }
+
+        // 요약 다운로드 함수
+        function downloadSummary() {
+            const summary = document.getElementById("downloadButton").getAttribute("data-summary");
+            if (!summary) {
+                alert("No summary available for download.");
+                return;
+            }
+
+            const blob = new Blob([summary], { type: "text/plain" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = "summary.txt"; // 다운로드 파일명 설정
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
