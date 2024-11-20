@@ -2,34 +2,16 @@
 
 ## 프로젝트 개요
 
-ViaVox는 딥러닝을 활용하여 **한국어 음성 인식** 및 **화자 인식** 기능을 제공하는 음성 노트 애플리케이션입니다. 사용자는 음성을 녹음하고 이를 텍스트로 변환(STT)할 수 있으며, 개별 화자를 구별하고 대화 내용을 요약하는 기능을 제공합니다.
+ViaVox는 딥러닝을 활용하여 **한국어 음성 인식** 및 **화자 분리** 기능을 제공하는 음성 노트 애플리케이션입니다. 사용자는 음성을 녹음하고 이를 텍스트로 변환(STT)할 수 있으며, 개별 화자를 구별하고 대화 내용을 요약하는 기능을 제공합니다.
 
 ## 주요 기능
 
-- **음성 인식(STT)**: 사전 학습된 모델을 사용하여 음성을 텍스트로 변환.
-- **화자 인식**: 개별 화자를 구분하여 발언자를 인식.
+- **음성 인식(STT)**: Whisper-Large-V2 모델을 한국어 데이터셋을 사용하여 파인튜닝을 진행, 음성을 텍스트로 변환. (huggingface의 Junhoee/STT_Korean_Dataset 데이터 사용)
+- **화자 분활**: Pyannote 모델을 한국어 데이터셋을 사용하여 파인튜닝을 진행, 개별 화자를 구분하여 발언자를 분활. (ai hub의 주요 영역별 회의 음성 데이터 사용)
 - **대화 요약**: OpenAI GPT API를 사용하여 대화 또는 회의 내용을 요약.
-- **자동 회의록 작성**: 여러 화자의 발언을 인식하여 자동으로 회의록을 작성.
 
-## 프로젝트 구조
-
-```bash
-├── Pyannote2/
-│   ├── Data/──Database/...
-│   └──models/──completed
-│   
-├── codes...(ipynb)
-├── app.py
-├── README.md
-└── requirements.txt
-
-```
-### 디렉토리 설명
-- **app/**: 프론트엔드 및 백엔드 소스 코드.
-- **models/**: 음성 및 화자 인식 모델 파일.
-- **data/**: AI 모델 학습에 사용된 데이터셋.
-- **requirements.txt**: Python 의존성 파일.
-
+- **데이터 출처**: (https://huggingface.co/datasets/Junhoee/STT_Korean_Dataset)
+- **데이터 출처**: (https://www.aihub.or.kr/)
 ## 리포지토리 구조
 ```bash
 ├── .gitignore
@@ -85,6 +67,8 @@ ViaVox는 딥러닝을 활용하여 **한국어 음성 인식** 및 **화자 인
 3. **변경 사항 커밋**: 개선사항이나 추가 기능을 개발하고 이를 커밋합니다.(git commit -m 'Add new feature')
 4. **브랜치 푸시**: 변경사항을 GitHub에 푸시합니다.(git push origin feature/new-feature)
 5. **Pull Request를 생성하세요**
+
+e-mail : tobaky36@gmail.com
 
 ## 라이선스
 이 프로젝트는 MIT 라이선스에 따라 배포됩니다.
